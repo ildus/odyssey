@@ -82,4 +82,10 @@ od_atomic_u64_sub(od_atomic_u64_t *atomic, uint64_t value)
 	__sync_sub_and_fetch(atomic, value);
 }
 
+static inline void
+od_memory_barrier(void)
+{
+	__sync_synchronize();
+}
+
 #endif /* ODYSSEY_ATOMIC_H */

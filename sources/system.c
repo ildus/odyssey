@@ -22,6 +22,7 @@
 #include <machinarium.h>
 #include <kiwi.h>
 #include <odyssey.h>
+#include "stolon_storage.h"
 
 static inline void
 od_system_server(void *arg)
@@ -417,6 +418,23 @@ od_system_signal_handler(void *arg)
 }
 
 static inline void
+od_init_storages(od_router_t *router, od_logger_t *logger)
+{
+	od_list_t	*item;
+	od_list_foreach(&router->rules.rules, item)
+	{
+		od_rule_t *rule;
+		rule = od_container_of(item, od_rule_t, link);
+		if (rule->storage->storage_type == OD_RULE_STORAGE_STOLON &&
+			rule->storage->stolon_state == NULL)
+		{
+			rule->storage->stolon_state = od_stolon_init_state(router,
+				logger, &rule->storage->stolon_config);
+		}
+	}
+}
+
+static inline void
 od_system(void *arg)
 {
 	od_system_t *system = arg;
@@ -443,6 +461,9 @@ od_system(void *arg)
 		         "failed to start signal handler");
 		return;
 	}
+
+	/* initialize storages */
+	od_init_storages(system->global->router, &instance->logger);
 
 	/* start listen servers */
 	rc = od_system_listen(system);

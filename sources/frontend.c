@@ -18,6 +18,32 @@
 #include <kiwi.h>
 #include <odyssey.h>
 
+void
+od_client_onfree_cb_add(od_client_t *client, void (*cb)(od_client_t *, void *arg), void *arg)
+{
+	od_list_t *item;
+	od_client_onfree_cb_t	*client_cb;
+	od_list_foreach(&client->onfree_callbacks, item)
+	{
+		od_client_onfree_cb_t	*c;
+		c = od_container_of(item, od_client_onfree_cb_t, link);
+		if (c->cb == cb && c->arg == arg)
+			return;
+	}
+
+	client_cb = malloc(sizeof(od_client_onfree_cb_t));
+	od_list_init(&client_cb->link);
+	client_cb->cb = cb;
+	client_cb->arg = arg;
+	od_list_append(&client->onfree_callbacks, &client_cb->link);
+}
+
+od_id_t *
+od_client_id(od_client_t *client)
+{
+	return &client->id;
+}
+
 static inline void
 od_frontend_close(od_client_t *client)
 {
@@ -940,6 +966,7 @@ od_frontend(void *arg)
 		status = od_frontend_local(client);
 		break;
 
+	case OD_RULE_STORAGE_STOLON:
 	case OD_RULE_STORAGE_REMOTE:
 		status = od_frontend_setup(client);
 		if (status != OD_OK)

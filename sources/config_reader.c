@@ -90,7 +90,10 @@ enum
 	OD_LAUTH_COMMON_NAME,
 	OD_LAUTH_QUERY,
 	OD_LAUTH_QUERY_DB,
-	OD_LAUTH_QUERY_USER
+	OD_LAUTH_QUERY_USER,
+	OD_LSTOLON_STORE_PREFIX,
+	OD_LSTOLON_CLUSTER_NAME,
+	OD_LSTOLON_ENDPOINTS
 };
 
 typedef struct
@@ -157,6 +160,9 @@ od_config_keywords[] =
 	od_keyword("storage",              OD_LSTORAGE),
 	od_keyword("type",                 OD_LTYPE),
 	od_keyword("default",              OD_LDEFAULT),
+	od_keyword("store_prefix",		   OD_LSTOLON_STORE_PREFIX),
+	od_keyword("endpoints",			   OD_LSTOLON_ENDPOINTS),
+	od_keyword("cluster_name",		   OD_LSTOLON_CLUSTER_NAME),
 	/* database */
 	od_keyword("database",             OD_LDATABASE),
 	od_keyword("user",                 OD_LUSER),
@@ -528,6 +534,24 @@ od_config_reader_storage(od_config_reader_t *reader)
 		/* tls_protocols */
 		case OD_LTLS_PROTOCOLS:
 			if (! od_config_reader_string(reader, &storage->tls_protocols))
+				return -1;
+			continue;
+		/* store_prefix */
+		case OD_LSTOLON_STORE_PREFIX:
+			if (! od_config_reader_string(reader,
+						&storage->stolon_config.store_prefix))
+				return -1;
+			continue;
+		/* cluster_name */
+		case OD_LSTOLON_CLUSTER_NAME:
+			if (! od_config_reader_string(reader,
+						&storage->stolon_config.cluster_name))
+				return -1;
+			continue;
+		/* endpoints */
+		case OD_LSTOLON_ENDPOINTS:
+			if (! od_config_reader_string(reader,
+						&storage->stolon_config.endpoints))
 				return -1;
 			continue;
 		default:
