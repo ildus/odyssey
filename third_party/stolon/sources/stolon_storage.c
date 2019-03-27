@@ -15,16 +15,13 @@
 #include "sleep_lock.h"
 #include "stolon_storage.h"
 
+const int		default_sleep_interval = 5000; //5s
 const int64_t	current_format_version = 1;
 const char	   *clusterdata = "clusterdata";
 const char	   *proxyinfodir = "proxies/info";
 
-const int		default_check_interval = 5000;
-const int		fast_check_interval = 1000;
-static int		check_interval = fast_check_interval;
-
-#define set_fast_check_interval() (check_interval = 1000)
-#define set_default_check_interval() (check_interval = 5000)
+#define set_fast_check_interval(state) (state->check_interval = state->check_interval_fast)
+#define set_default_check_interval(state) (state->check_interval = state->check_interval_default)
 
 /* we can't include client.h since it goes with kiwi and other stuff */
 od_id_t *od_client_id(void *client);
@@ -62,6 +59,10 @@ struct od_stolon_state {
 	checker_status_t	status;
 	od_rule_custom_storage_t	storage;
 	od_list_t			clients;
+
+	int				check_interval;				//current
+	int				check_interval_default;
+	int				check_interval_fast;
 
 	od_atomic_u64_t		storage_generation;
 };
@@ -108,6 +109,18 @@ od_stolon_init_state(void *router, od_logger_t *logger, od_stolon_config_t *conf
 	state->status = INIT;
 	state->logger = logger;
 	state->router = router;
+
+	/* set sleep interval, by default 5s */
+	state->check_interval_default = config->check_interval_default;
+	if (state->check_interval_default <= 0)
+		state->check_interval_default = default_sleep_interval;
+
+	state->check_interval_fast = config->check_interval_fast;
+	if (state->check_interval_fast <= 0)
+		state->check_interval_fast = state->check_interval_default;
+
+	state->check_interval = config->check_interval_fast;
+
     cetcd_array_init(&state->endpoints, 1);
 	while ((token = strtok(s, ",")) != NULL)
 	{
@@ -138,7 +151,7 @@ od_stolon_init_state(void *router, od_logger_t *logger, od_stolon_config_t *conf
 
 	/* start checking coroutine */
 	state->checker_id = machine_coroutine_create(od_stolon_check, (void *) state);
-	set_fast_check_interval();
+	set_fast_check_interval(state);
 
 	return state;
 }
@@ -153,7 +166,7 @@ od_stolon_free_state(void *stolon_state)
 
 	while (state->status != STOPPED)
 	{
-		set_fast_check_interval();
+		set_fast_check_interval(state);
 		machine_sleep(100);
 	}
 
@@ -284,8 +297,8 @@ od_stolon_close_connections(od_stolon_state_t *stolon_state)
 {
 	od_list_t	*item;
 
-	set_fast_check_interval();
 	od_stolon_state_t	*state = (od_stolon_state_t *) stolon_state;
+	set_fast_check_interval(state);
 	state->storage_generation = 0;
 	od_memory_barrier();
 	memset(&state->storage, 0, sizeof(state->storage));
@@ -461,7 +474,7 @@ od_stolon_check(void *arg)
 
 		if (cluster->proxy->enabled)
 		{
-			set_default_check_interval();
+			set_default_check_interval(state);
 			if (!state->master_dbuid ||
 				strcmp(cluster->proxy->master_dbuid, state->master_dbuid) != 0)
 			{
@@ -484,7 +497,7 @@ wait:
 		free_od_cluster_data(cluster);
 
 		if (state->status == RUNNING)
-			machine_sleep(check_interval);
+			machine_sleep(state->check_interval);
 	}
 
 	state->status = STOPPED;

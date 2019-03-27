@@ -93,6 +93,8 @@ enum
 	OD_LAUTH_QUERY_USER,
 	OD_LSTOLON_STORE_PREFIX,
 	OD_LSTOLON_CLUSTER_NAME,
+	OD_LSTOLON_CHECK_INTERVAL_DEFAULT,
+	OD_LSTOLON_CHECK_INTERVAL_FAST,
 	OD_LSTOLON_ENDPOINTS
 };
 
@@ -163,6 +165,8 @@ od_config_keywords[] =
 	od_keyword("store_prefix",		   OD_LSTOLON_STORE_PREFIX),
 	od_keyword("endpoints",			   OD_LSTOLON_ENDPOINTS),
 	od_keyword("cluster_name",		   OD_LSTOLON_CLUSTER_NAME),
+	od_keyword("check_interval_default",	OD_LSTOLON_CHECK_INTERVAL_DEFAULT),
+	od_keyword("check_interval_fast",		OD_LSTOLON_CHECK_INTERVAL_FAST),
 	/* database */
 	od_keyword("database",             OD_LDATABASE),
 	od_keyword("user",                 OD_LUSER),
@@ -552,6 +556,18 @@ od_config_reader_storage(od_config_reader_t *reader)
 		case OD_LSTOLON_ENDPOINTS:
 			if (! od_config_reader_string(reader,
 						&storage->stolon_config.endpoints))
+				return -1;
+			continue;
+		/* check_interval_default */
+		case OD_LSTOLON_CHECK_INTERVAL_DEFAULT:
+			if (! od_config_reader_number(reader,
+						&storage->stolon_config.check_interval_default))
+				return -1;
+			continue;
+		/* check_interval_fast */
+		case OD_LSTOLON_CHECK_INTERVAL_FAST:
+			if (! od_config_reader_number(reader,
+						&storage->stolon_config.check_interval_fast))
 				return -1;
 			continue;
 		default:

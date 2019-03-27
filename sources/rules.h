@@ -50,9 +50,11 @@ typedef enum
 
 struct od_stolon_config
 {
-	char			*store_prefix;
-	char			*cluster_name;
-	char			*endpoints;
+	int		check_interval_default;
+	int		check_interval_fast;
+	char   *store_prefix;
+	char   *cluster_name;
+	char   *endpoints;
 };
 
 struct od_stolon_database

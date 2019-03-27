@@ -169,6 +169,11 @@ od_rules_storage_copy(od_rule_storage_t *storage)
 		if (copy->stolon_config.endpoints == NULL)
 			goto error;
 	}
+	copy->stolon_config.check_interval_default =
+		storage->stolon_config.check_interval_default;
+	copy->stolon_config.check_interval_fast =
+		storage->stolon_config.check_interval_fast;
+
 	return copy;
 error:
 	od_rules_storage_free(copy);
