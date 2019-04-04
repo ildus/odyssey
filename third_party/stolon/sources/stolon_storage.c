@@ -15,7 +15,7 @@
 #include "sleep_lock.h"
 #include "stolon_storage.h"
 
-const int		default_sleep_interval = 5000; //5s
+const int		default_sleep_interval = 3000; //5s
 const int64_t	current_format_version = 1;
 const char	   *clusterdata = "clusterdata";
 const char	   *proxyinfodir = "proxies/info";
@@ -119,8 +119,6 @@ od_stolon_init_state(void *router, od_logger_t *logger, od_stolon_config_t *conf
 	if (state->check_interval_fast <= 0)
 		state->check_interval_fast = state->check_interval_default;
 
-	state->check_interval = config->check_interval_fast;
-
     cetcd_array_init(&state->endpoints, 1);
 	while ((token = strtok(s, ",")) != NULL)
 	{
@@ -150,8 +148,8 @@ od_stolon_init_state(void *router, od_logger_t *logger, od_stolon_config_t *conf
 				config->cluster_name, proxyinfodir, state->proxy_uid);
 
 	/* start checking coroutine */
-	state->checker_id = machine_coroutine_create(od_stolon_check, (void *) state);
 	set_fast_check_interval(state);
+	state->checker_id = machine_coroutine_create(od_stolon_check, (void *) state);
 
 	return state;
 }
@@ -500,5 +498,7 @@ wait:
 			machine_sleep(state->check_interval);
 	}
 
+	mm_sleeplock_lock(&state->lock);
 	state->status = STOPPED;
+	mm_sleeplock_unlock(&state->lock);
 }
