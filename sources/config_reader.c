@@ -5,23 +5,13 @@
  * Scalable PostgreSQL connection pooler.
 */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <inttypes.h>
-#include <assert.h>
-
+#include <c.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include <machinarium.h>
-#include <kiwi.h>
 #include <odyssey.h>
 
 enum
@@ -95,6 +85,8 @@ enum
 
 typedef struct
 {
+	mcxt_context_t	mcxt;
+
 	od_parser_t  parser;
 	od_config_t *config;
 	od_rules_t  *rules;
@@ -190,7 +182,7 @@ od_config_reader_open(od_config_reader_t *reader, char *config_file)
 		goto error;
 	char *config_buf = NULL;
 	if (st.st_size > 0) {
-		config_buf = malloc(st.st_size);
+		config_buf = mcxt_alloc(st.st_size);
 		if (config_buf == NULL)
 			goto error;
 		FILE *file = fopen(config_file, "r");
@@ -200,8 +192,8 @@ od_config_reader_open(od_config_reader_t *reader, char *config_file)
 		}
 		rc = fread(config_buf, st.st_size, 1, file);
 		fclose(file);
+
 		if (rc != 1) {
-			free(config_buf);
 			goto error;
 		}
 	}
@@ -299,7 +291,7 @@ od_config_reader_string(od_config_reader_t *reader, char **value)
 		od_config_reader_error(reader, &token, "expected 'string'");
 		return false;
 	}
-	char *copy = malloc(token.value.string.size + 1);
+	char *copy = mcxt_alloc(token.value.string.size + 1);
 	if (copy == NULL) {
 		od_parser_push(&reader->parser, &token);
 		od_config_reader_error(reader, &token, "memory allocation error");
@@ -847,7 +839,8 @@ od_config_reader_parse(od_config_reader_t *reader)
 			char *config_file = NULL;
 			if (! od_config_reader_string(reader, &config_file))
 				return -1;
-			rc = od_config_reader_import(reader->config, reader->rules, reader->error, config_file);
+			rc = od_config_reader_import(reader->config, reader->rules,
+				reader->error, config_file, reader->mcxt);
 			free(config_file);
 			if (rc == -1)
 				return -1;
@@ -1028,18 +1021,26 @@ od_config_reader_parse(od_config_reader_t *reader)
 
 int
 od_config_reader_import(od_config_t *config, od_rules_t *rules, od_error_t *error,
-                        char *config_file)
+                        char *config_file, mcxt_context_t mcxt)
 {
+	mcxt_context_t	old;
+
 	od_config_reader_t reader;
 	memset(&reader, 0, sizeof(reader));
 	reader.error   = error;
 	reader.config  = config;
 	reader.rules   = rules;
-	int rc;
-	rc = od_config_reader_open(&reader, config_file);
+	reader.mcxt    = mcxt_new(mcxt);
+
+	old = mcxt_switch_to(reader.mcxt);
+	int rc = od_config_reader_open(&reader, config_file);
 	if (rc == -1)
 		return -1;
+
 	rc = od_config_reader_parse(&reader);
 	od_config_reader_close(&reader);
+	mcxt_switch_to(old);
+	mcxt_delete(reader.mcxt);
+
 	return rc;
 }

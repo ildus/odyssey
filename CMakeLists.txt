@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
-
-project(odyssey C)
+cmake_minimum_required(VERSION 3.5)
+project(odyssey LANGUAGES C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -63,6 +62,10 @@ include(BuildKiwi)
 build_kiwi()
 set(od_libraries ${od_libraries} ${KIWI_LIBRARIES})
 include_directories(${KIWI_INCLUDE_DIRS})
+
+#memcontext
+add_subdirectory(third_party/memcontext)
+set(od_libraries ${od_libraries} memcontext)
 
 message (STATUS "")
 message (STATUS "Odyssey (version: ${OD_VERSION_GIT} ${OD_VERSION_BUILD})")

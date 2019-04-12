@@ -5,29 +5,27 @@
  * Scalable PostgreSQL connection pooler.
 */
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <inttypes.h>
-#include <assert.h>
-
+#include <c.h>
 #include <signal.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include <machinarium.h>
-#include <kiwi.h>
 #include <odyssey.h>
 
 void
 od_instance_init(od_instance_t *instance)
 {
+	mcxt_context_t	config_mcxt;
+
 	od_pid_init(&instance->pid);
 	od_logger_init(&instance->logger, &instance->pid);
+
+	instance->top_mcxt = mcxt_new(NULL);
+	config_mcxt = mcxt_new(instance->top_mcxt);
+	instance->config = mcxt_alloc_mem(config_mcxt, sizeof(od_config_t), true);
+	instance->config->mcxt = config_mcxt;
+
 	od_config_init(&instance->config);
 	instance->config_file = NULL;
 

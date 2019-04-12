@@ -35,6 +35,8 @@ struct od_config_listen
 
 struct od_config
 {
+	mcxt_context_t	mcxt;
+
 	int        daemonize;
 	int        priority;
 	int        log_to_stdout;
