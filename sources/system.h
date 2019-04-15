@@ -17,7 +17,6 @@ struct od_system_server
 	od_config_listen_t *config;
 	struct addrinfo    *addr;
 	od_global_t        *global;
-	mcxt_context_t	   *system_server_mcxt;
 };
 
 struct od_system
