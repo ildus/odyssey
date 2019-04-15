@@ -23,8 +23,6 @@ od_system_server(void *arg)
 	{
 		/* accepted client io is not attached to epoll context yet */
 		machine_io_t	*client_io;
-		mcxt_context_t	client_mcxt,
-						old;
 		int rc;
 		rc = machine_accept(server->io, &client_io, server->config->backlog,
 		                    0, UINT32_MAX);
@@ -313,31 +311,31 @@ od_system_config_reload(od_system_t *system)
 	od_error_t error;
 	od_error_init(&error);
 
-	od_config_t config;
-	od_config_init(&config);
+	od_config_t *config = od_config_new(instance->top_mcxt);
 
 	od_rules_t rules;
 	od_rules_init(&rules);
 
 	int rc;
-	rc = od_config_reader_import(&config, &rules, &error, instance->config_file);
+	rc = od_config_reader_import(config, &rules, &error, instance->config_file,
+			instance->top_mcxt);
 	if (rc == -1) {
 		od_error(&instance->logger, "config", NULL, NULL,
 		         "%s", error.error);
-		od_config_free(&config);
+		od_config_free(config);
 		od_rules_free(&rules);
 		return;
 	}
 
-	rc = od_config_validate(&config, &instance->logger);
+	rc = od_config_validate(config, &instance->logger);
 	if (rc == -1) {
-		od_config_free(&config);
+		od_config_free(config);
 		od_rules_free(&rules);
 		return;
 	}
 
-	rc = od_rules_validate(&rules, &config, &instance->logger);
-	od_config_free(&config);
+	rc = od_rules_validate(&rules, config, &instance->logger);
+	od_config_free(config);
 	if (rc == -1) {
 		od_rules_free(&rules);
 		return;

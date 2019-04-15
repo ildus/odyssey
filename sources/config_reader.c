@@ -291,7 +291,8 @@ od_config_reader_string(od_config_reader_t *reader, char **value)
 		od_config_reader_error(reader, &token, "expected 'string'");
 		return false;
 	}
-	char *copy = mcxt_alloc(token.value.string.size + 1);
+	char *copy = mcxt_alloc_mem(reader->config->mcxt,
+			token.value.string.size + 1, false);
 	if (copy == NULL) {
 		od_parser_push(&reader->parser, &token);
 		od_config_reader_error(reader, &token, "memory allocation error");
@@ -300,7 +301,8 @@ od_config_reader_string(od_config_reader_t *reader, char **value)
 	memcpy(copy, token.value.string.pointer, token.value.string.size);
 	copy[token.value.string.size] = 0;
 	if (*value)
-		free(*value);
+		mcxt_free(*value);
+
 	*value = copy;
 	return true;
 }

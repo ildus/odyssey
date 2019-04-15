@@ -7,9 +7,14 @@
 
 #include <odyssey.h>
 
-void
-od_config_init(od_config_t *config)
+od_config_t *
+od_config_new(mcxt_context_t mcxt)
 {
+	mcxt_context_t	config_mcxt = mcxt_new(mcxt);
+	od_config_t	   *config;
+
+	config = mcxt_alloc_mem(config_mcxt, sizeof(od_config_t), true);
+
 	config->log_to_stdout        = 1;
 	config->log_session          = 1;
 	config->log_stats            = 1;
@@ -21,7 +26,10 @@ od_config_init(od_config_t *config)
 	config->workers              = 1;
 	config->resolvers            = 1;
 	config->coroutine_stack_size = 4;
+	config->mcxt				 = config_mcxt;
 	od_list_init(&config->listen);
+
+	return config;
 }
 
 void

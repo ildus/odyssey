@@ -189,6 +189,13 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 	return ChunkDataOffset(chunk);
 }
 
+void *mcxt_realloc(void *ptr, size_t size)
+{
+	mcxt_chunk_t chunk = GetMemoryChunk(ptr);
+	assert(size > MEMORY_CHUNK_SIZE);
+	return realloc(chunk, size);
+}
+
 /* Free memory in specified memory context */
 void mcxt_free_mem(mcxt_context_t context, void *p)
 {

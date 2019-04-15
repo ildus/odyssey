@@ -130,7 +130,7 @@ od_frontend_attach(od_client_t *client, char *context, kiwi_params_t *route_para
 
 	for (;;)
 	{
-		status = od_router_attach(router, &instance->config, client);
+		status = od_router_attach(router, instance->config, client);
 		if (status != OD_ROUTER_OK)
 		{
 			if (status == OD_ROUTER_ERROR_TIMEDOUT)
@@ -661,7 +661,7 @@ od_frontend_remote(od_client_t *client)
 			/* push server connection back to route pool */
 			od_router_t *router = client->global->router;
 			od_instance_t *instance = client->global->instance;
-			od_router_detach(router, &instance->config, client);
+			od_router_detach(router, instance->config, client);
 			server = NULL;
 		} else
 		if (status != OD_OK) {
@@ -717,7 +717,7 @@ od_frontend_cleanup(od_client_t *client, char *context,
 			break;
 		}
 		/* push server to router server pool */
-		od_router_detach(router, &instance->config, client);
+		od_router_detach(router, instance->config, client);
 		break;
 
 	case OD_EOOM:
@@ -750,7 +750,7 @@ od_frontend_cleanup(od_client_t *client, char *context,
 			break;
 		}
 		/* push server to router server pool */
-		od_router_detach(router, &instance->config, client);
+		od_router_detach(router, instance->config, client);
 		break;
 
 	case OD_ESERVER_CONNECT:
@@ -863,7 +863,7 @@ od_frontend(void *arg)
 
 	/* route client */
 	od_router_status_t router_status;
-	router_status = od_router_route(router, &instance->config, client);
+	router_status = od_router_route(router, instance->config, client);
 	switch (router_status) {
 	case OD_ROUTER_ERROR:
 		od_error(&instance->logger, "startup", client, NULL,

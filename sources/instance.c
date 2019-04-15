@@ -16,17 +16,11 @@
 void
 od_instance_init(od_instance_t *instance)
 {
-	mcxt_context_t	config_mcxt;
-
 	od_pid_init(&instance->pid);
 	od_logger_init(&instance->logger, &instance->pid);
 
 	instance->top_mcxt = mcxt_new(NULL);
-	config_mcxt = mcxt_new(instance->top_mcxt);
-	instance->config = mcxt_alloc_mem(config_mcxt, sizeof(od_config_t), true);
-	instance->config->mcxt = config_mcxt;
-
-	od_config_init(&instance->config);
+	instance->config = od_config_new(instance->top_mcxt);
 	instance->config_file = NULL;
 
 	sigset_t mask;
@@ -41,9 +35,9 @@ od_instance_init(od_instance_t *instance)
 void
 od_instance_free(od_instance_t *instance)
 {
-	if (instance->config.pid_file)
-		od_pid_unlink(&instance->pid, instance->config.pid_file);
-	od_config_free(&instance->config);
+	if (instance->config->pid_file)
+		od_pid_unlink(&instance->pid, instance->config->pid_file);
+	od_config_free(instance->config);
 	od_logger_close(&instance->logger);
 	machinarium_free();
 }
@@ -91,7 +85,8 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	od_error_t error;
 	od_error_init(&error);
 	int rc;
-	rc = od_config_reader_import(&instance->config, &router.rules, &error, instance->config_file);
+	rc = od_config_reader_import(instance->config, &router.rules, &error,
+		instance->config_file, instance->top_mcxt);
 	if (rc == -1) {
 		od_error(&instance->logger, "config", NULL, NULL,
 		         "%s", error.error);
@@ -99,22 +94,22 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	}
 
 	/* validate configuration */
-	rc = od_config_validate(&instance->config, &instance->logger);
+	rc = od_config_validate(instance->config, &instance->logger);
 	if (rc == -1)
 		return -1;
 
 	/* validate rules */
-	rc = od_rules_validate(&router.rules, &instance->config, &instance->logger);
+	rc = od_rules_validate(&router.rules, instance->config, &instance->logger);
 	if (rc == -1)
 		return -1;
 
 	/* configure logger */
-	od_logger_set_format(&instance->logger, instance->config.log_format);
-	od_logger_set_debug(&instance->logger, instance->config.log_debug);
-	od_logger_set_stdout(&instance->logger, instance->config.log_to_stdout);
+	od_logger_set_format(&instance->logger, instance->config->log_format);
+	od_logger_set_debug(&instance->logger, instance->config->log_debug);
+	od_logger_set_stdout(&instance->logger, instance->config->log_to_stdout);
 
 	/* run as daemon */
-	if (instance->config.daemonize) {
+	if (instance->config->daemonize) {
 		rc = od_daemonize();
 		if (rc == -1)
 			return -1;
@@ -123,21 +118,21 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	}
 
 	/* reopen log file after config parsing */
-	if (instance->config.log_file) {
-		rc = od_logger_open(&instance->logger, instance->config.log_file);
+	if (instance->config->log_file) {
+		rc = od_logger_open(&instance->logger, instance->config->log_file);
 		if (rc == -1) {
 			od_error(&instance->logger, "init", NULL, NULL,
 			         "failed to open log file '%s'",
-			         instance->config.log_file);
+			         instance->config->log_file);
 			return -1;
 		}
 	}
 
 	/* syslog */
-	if (instance->config.log_syslog) {
+	if (instance->config->log_syslog) {
 		od_logger_open_syslog(&instance->logger,
-		                      instance->config.log_syslog_ident,
-		                      instance->config.log_syslog_facility);
+		                      instance->config->log_syslog_ident,
+		                      instance->config->log_syslog_facility);
 	}
 	od_log(&instance->logger, "init", NULL, NULL, "odyssey (git: %s %s)",
 	       OD_VERSION_GIT,
@@ -149,15 +144,15 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	       instance->config_file);
 	od_log(&instance->logger, "init", NULL, NULL, "");
 
-	if (instance->config.log_config) {
-		od_config_print(&instance->config, &instance->logger);
+	if (instance->config->log_config) {
+		od_config_print(instance->config, &instance->logger);
 		od_rules_print(&router.rules, &instance->logger);
 	}
 
 	/* set process priority */
-	if (instance->config.priority != 0) {
+	if (instance->config->priority != 0) {
 		int rc;
-		rc = setpriority(PRIO_PROCESS, 0, instance->config.priority);
+		rc = setpriority(PRIO_PROCESS, 0, instance->config->priority);
 		if (rc == -1) {
 			od_error(&instance->logger, "init", NULL, NULL,
 			         "failed to set process priority: %s", strerror(errno));
@@ -165,10 +160,10 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	}
 
 	/* initialize machinarium */
-	machinarium_set_stack_size(instance->config.coroutine_stack_size);
-	machinarium_set_pool_size(instance->config.resolvers);
-	machinarium_set_coroutine_cache_size(instance->config.cache_coroutine);
-	machinarium_set_msg_cache_gc_size(instance->config.cache_msg_gc_size);
+	machinarium_set_stack_size(instance->config->coroutine_stack_size);
+	machinarium_set_pool_size(instance->config->resolvers);
+	machinarium_set_coroutine_cache_size(instance->config->cache_coroutine);
+	machinarium_set_msg_cache_gc_size(instance->config->cache_msg_gc_size);
 	rc = machinarium_init();
 	if (rc == -1) {
 		od_error(&instance->logger, "init", NULL, NULL,
@@ -177,8 +172,8 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	}
 
 	/* create pid file */
-	if (instance->config.pid_file)
-		od_pid_create(&instance->pid, instance->config.pid_file);
+	if (instance->config->pid_file)
+		od_pid_create(&instance->pid, instance->config->pid_file);
 
 	/* start system machine thread */
 	rc = od_system_start(&system, &global);

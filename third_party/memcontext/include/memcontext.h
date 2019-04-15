@@ -29,6 +29,7 @@ mcxt_context_t mcxt_switch_to(mcxt_context_t to);
 int mcxt_reset(mcxt_context_t context, bool recursive);
 int mcxt_delete(mcxt_context_t context);
 void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero);
+void *mcxt_realloc(void *ptr, size_t size);
 void mcxt_free_mem(mcxt_context_t context, void *p);
 int mcxt_chunks_count(mcxt_context_t context);
 
