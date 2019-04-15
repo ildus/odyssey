@@ -6,10 +6,6 @@
 typedef struct mcxt_memory_chunk	*mcxt_chunk_t;
 typedef struct mcxt_context_data	*mcxt_context_t;
 
-enum {
-	MCXT_THREAD_CONFLICT = 0x01
-} mcxt_errors;
-
 struct mcxt_context_data
 {
 	uint32_t		lock;
@@ -26,12 +22,13 @@ extern __thread mcxt_context_t current_mcxt;
 
 mcxt_context_t mcxt_new(mcxt_context_t parent);
 mcxt_context_t mcxt_switch_to(mcxt_context_t to);
-int mcxt_reset(mcxt_context_t context, bool recursive);
-int mcxt_delete(mcxt_context_t context);
+void mcxt_reset(mcxt_context_t context, bool recursive);
+void mcxt_delete(mcxt_context_t context);
 void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero);
 void *mcxt_realloc(void *ptr, size_t size);
 void mcxt_free_mem(mcxt_context_t context, void *p);
 int mcxt_chunks_count(mcxt_context_t context);
+char *mcxt_strdup_in(mcxt_context_t context, const char *string);
 
 static inline void *mcxt_alloc(size_t size)
 {
@@ -49,6 +46,12 @@ static inline void mcxt_free(void *p)
 {
 	mcxt_context_t context = *((mcxt_context_t *) ((char *) p - sizeof(void *)));
 	mcxt_free_mem(context, p);
+}
+
+static inline char *mcxt_strdup(const char *string)
+{
+	assert(current_mcxt != NULL);
+	return mcxt_strdup_in(current_mcxt, string);
 }
 
 #endif

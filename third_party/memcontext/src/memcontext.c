@@ -75,13 +75,9 @@ mcxt_context_t mcxt_switch_to(mcxt_context_t to)
 }
 
 /* Free all memory in memory context */
-int mcxt_reset(mcxt_context_t context, bool recursive)
+void mcxt_reset(mcxt_context_t context, bool recursive)
 {
-	int				res = 0;
 	mcxt_chunk_t		chunk = context->lastchunk;
-
-	if (context->ptid != pthread_self())
-		return MCXT_THREAD_CONFLICT;
 
 	if (recursive)
 	{
@@ -89,9 +85,7 @@ int mcxt_reset(mcxt_context_t context, bool recursive)
 		mcxt_context_t	child;
 		for (child = context->firstchild; child != NULL; child = child->nextchild)
 		{
-			int r = mcxt_reset(child, true);
-			if (r != 0)
-				res = r;
+			mcxt_reset(child, true);
 		}
 	}
 
@@ -102,8 +96,6 @@ int mcxt_reset(mcxt_context_t context, bool recursive)
 		chunk = prev;
 	}
 	context->lastchunk = NULL;
-
-	return res;
 }
 
 int mcxt_chunks_count(mcxt_context_t context)
@@ -141,30 +133,22 @@ static void mcxt_unlink_context(mcxt_context_t context)
 }
 
 /* Delete memory context, all its chunks and childs */
-int mcxt_delete(mcxt_context_t context)
+void mcxt_delete(mcxt_context_t context)
 {
-	int				res = 0;
 	mcxt_context_t	child;
 
 	assert(current_mcxt != context);
 	assert(GetMemoryChunk(context)->chunk_type == mct_context);
 
-	if (context->ptid != pthread_self())
-		return MCXT_THREAD_CONFLICT;
-
 	mcxt_unlink_context(context);
 
 	for (child = context->firstchild; child != NULL; child = child->nextchild)
 	{
-		int r = mcxt_delete(child);
-		if (r != 0)
-			res = r;
+		mcxt_delete(child);
 	}
 
 	mcxt_reset(context, false);
 	free(GetMemoryChunk(context));
-
-	return res;
 }
 
 /* Allocate memory in specified memory context */
@@ -180,7 +164,7 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 		return NULL;
 
 	if (zero)
-		memset(chunk, 0, MEMORY_CHUNK_SIZE);
+		memset(chunk, 0, MEMORY_CHUNK_SIZE + size);
 
 	chunk->context = context;
 	chunk->chunk_type = mct_alloc;
@@ -214,4 +198,14 @@ void mcxt_free_mem(mcxt_context_t context, void *p)
 		context->lastchunk = chunk->prev;
 
 	free(chunk);
+}
+
+char *mcxt_strdup_in(mcxt_context_t context, const char *string)
+{
+	char	   *nstr;
+	size_t		len = strlen(string) + 1;
+
+	nstr = (char *) mcxt_alloc_mem(context, len, false);
+	memcpy(nstr, string, len);
+	return nstr;
 }

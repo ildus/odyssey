@@ -8,11 +8,11 @@
 #include <odyssey.h>
 
 void
-od_router_init(od_router_t *router)
+od_router_init(mcxt_context_t top, od_router_t *router)
 {
 	pthread_mutex_init(&router->lock, NULL);
-	od_rules_init(&router->rules);
-	od_route_pool_init(&router->route_pool);
+	od_rules_init(top, &router->rules);
+	od_route_pool_init(top, &router->route_pool);
 	router->clients = 0;
 }
 
@@ -344,7 +344,7 @@ od_router_attach(od_router_t *router, od_config_t *config, od_client_t *client)
 	od_route_unlock(route);
 
 	/* create new server object */
-	server = od_server_allocate();
+	server = od_server_allocate(route->mcxt);
 	if (server == NULL)
 		return OD_ROUTER_ERROR;
 	od_id_generate(&server->id, "s");
@@ -441,7 +441,8 @@ od_router_cancel_cb(od_route_t *route, void **argv)
 		od_router_cancel_t *cancel = argv[1];
 		cancel->id     = server->id;
 		cancel->key    = server->key;
-		cancel->storage = od_rules_storage_copy(route->rule->storage);
+		cancel->storage = od_rules_storage_copy(route->rule->mcxt,
+												route->rule->storage);
 		od_route_unlock(route);
 		if (cancel->storage == NULL)
 			return -1;

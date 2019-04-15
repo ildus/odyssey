@@ -64,7 +64,7 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	od_global_t      global;
 
 	od_system_init(&system);
-	od_router_init(&router);
+	od_router_init(instance->top_mcxt, &router);
 	od_cron_init(&cron);
 	od_worker_pool_init(&worker_pool);
 	od_global_init(&global, instance, &system, &router, &cron, &worker_pool);
@@ -87,6 +87,7 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 	int rc;
 	rc = od_config_reader_import(instance->config, &router.rules, &error,
 		instance->config_file, instance->top_mcxt);
+
 	if (rc == -1) {
 		od_error(&instance->logger, "config", NULL, NULL,
 		         "%s", error.error);

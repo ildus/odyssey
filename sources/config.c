@@ -43,7 +43,7 @@ od_config_listen_add(od_config_t *config)
 {
 	od_config_listen_t *listen;
 
-	listen = mcxt_alloc_mem(config->mcxt, sizeof(*listen), true);
+	listen = mcxt_alloc0(sizeof(*listen));
 
 	if (listen == NULL)
 		return NULL;

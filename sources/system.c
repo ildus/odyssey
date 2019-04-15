@@ -314,7 +314,7 @@ od_system_config_reload(od_system_t *system)
 	od_config_t *config = od_config_new(instance->top_mcxt);
 
 	od_rules_t rules;
-	od_rules_init(&rules);
+	od_rules_init(instance->top_mcxt, &rules);
 
 	int rc;
 	rc = od_config_reader_import(config, &rules, &error, instance->config_file,

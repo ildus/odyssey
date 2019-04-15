@@ -11,6 +11,7 @@ typedef struct od_route od_route_t;
 
 struct od_route
 {
+	mcxt_context_t		mcxt;
 	od_rule_t          *rule;
 	od_route_id_t       id;
 	od_stat_t           stats;
@@ -49,17 +50,21 @@ od_route_free(od_route_t *route)
 	if (route->wait_bus)
 		machine_channel_free(route->wait_bus);
 	pthread_mutex_destroy(&route->lock);
-	free(route);
+	mcxt_delete(route->mcxt);
 }
 
 static inline od_route_t*
-od_route_allocate(int is_shared)
+od_route_allocate(mcxt_context_t mcxt, int is_shared)
 {
-	od_route_t *route = malloc(sizeof(*route));
+	mcxt_context_t route_mcxt = mcxt_new(mcxt);
+	od_route_t *route = mcxt_alloc_mem(route_mcxt, sizeof(*route), true);
 	if (route == NULL)
 		return NULL;
+
 	od_route_init(route);
 	route->wait_bus = machine_channel_create(is_shared);
+	route->mcxt = route_mcxt;
+
 	if (route->wait_bus == NULL) {
 		od_route_free(route);
 		return NULL;

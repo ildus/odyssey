@@ -31,7 +31,7 @@ struct od_client_ctl
 
 struct od_client
 {
-	mcxt_context_t		client_mcxt;
+	mcxt_context_t		mcxt;
 
 	od_client_state_t   state;
 	od_id_t             id;
@@ -89,6 +89,8 @@ od_client_allocate(mcxt_context_t mcxt)
 
 	old = mcxt_switch_to(client_mcxt);
 	od_client_t *client = mcxt_alloc0(sizeof(*client));
+	client->mcxt = mcxt;
+
 	if (client == NULL)
 		return NULL;
 
@@ -106,7 +108,7 @@ od_client_free(od_client_t *client)
 	if (client->cond)
 		machine_cond_free(client->cond);
 
-	mcxt_delete(client->client_mcxt);
+	mcxt_delete(client->mcxt);
 }
 
 static inline void
