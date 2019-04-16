@@ -347,6 +347,7 @@ od_router_attach(od_router_t *router, od_config_t *config, od_client_t *client)
 	server = od_server_allocate(route->mcxt);
 	if (server == NULL)
 		return OD_ROUTER_ERROR;
+
 	od_id_generate(&server->id, "s");
 	server->global = client->global;
 	server->route  = route;

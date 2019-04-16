@@ -58,12 +58,15 @@ od_server_init(od_server_t *server)
 static inline od_server_t*
 od_server_allocate(mcxt_context_t mcxt)
 {
+	assert(mcxt != NULL);
+
 	od_server_t *server = mcxt_alloc_mem(mcxt, sizeof(*server), true);
 	if (server == NULL)
 		return NULL;
 
 	od_server_init(server);
 	server->is_allocated = 1;
+	mcxt_incr_refcount(server);
 	return server;
 }
 
@@ -71,7 +74,10 @@ static inline void
 od_server_free(od_server_t *server)
 {
 	if (server->is_allocated)
+	{
+		mcxt_decr_refcount(server);
 		mcxt_free(server);
+	}
 }
 
 static inline void

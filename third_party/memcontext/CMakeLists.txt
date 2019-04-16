@@ -5,6 +5,7 @@ project(libmemcontext VERSION 1.0.0 LANGUAGES C)
 set(src
 	src/memcontext.c
 )
+
 add_library(memcontext ${src})
 target_include_directories(memcontext
     PUBLIC
@@ -15,6 +16,10 @@ target_include_directories(memcontext
 )
 target_compile_options(memcontext PRIVATE -Werror -Wall -Wextra)
 target_compile_features(memcontext PRIVATE c_std_11)
+
+include(CheckTypeSize)
+check_type_size("void*" SIZEOF_VOID_P)
+configure_file(src/memconsts.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/memconsts.h)
 
 find_package (Threads)
 target_link_libraries(memcontext Threads::Threads)

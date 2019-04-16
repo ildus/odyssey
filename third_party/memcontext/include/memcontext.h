@@ -54,4 +54,13 @@ static inline char *mcxt_strdup(const char *string)
 	return mcxt_strdup_in(current_mcxt, string);
 }
 
+#ifdef MCXT_PROTECTION_CHECK
+void mcxt_incr_refcount(void *ptr);
+void mcxt_decr_refcount(void *ptr);
+void mcxt_check(void *ptr, void *context, int refcount);
+#else
+#define mcxt_incr_refcount(ptr)
+#define mcxt_decr_refcount(ptr)
+#endif
+
 #endif

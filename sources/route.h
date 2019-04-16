@@ -44,7 +44,6 @@ od_route_init(od_route_t *route)
 static inline void
 od_route_free(od_route_t *route)
 {
-	od_route_id_free(&route->id);
 	od_server_pool_free(&route->server_pool);
 	kiwi_params_lock_free(&route->params);
 	if (route->wait_bus)

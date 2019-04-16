@@ -188,6 +188,9 @@ void mcxt_free_mem(mcxt_context_t context, void *p)
 	assert(p != NULL);
 	assert(p == (void *) MAXALIGN(p));
 	assert(chunk->chunk_type == mct_alloc);
+#ifdef MCXT_PROTECTION_CHECK
+	assert(chunk->refcount == 0);
+#endif
 
 	/* first, deattach from chunks in context */
 	if (chunk->next)
@@ -209,3 +212,20 @@ char *mcxt_strdup_in(mcxt_context_t context, const char *string)
 	memcpy(nstr, string, len);
 	return nstr;
 }
+
+#ifdef MCXT_PROTECTION_CHECK
+void mcxt_incr_refcount(void *ptr)
+{
+	GetMemoryChunk(ptr)->refcount++;
+}
+
+void mcxt_decr_refcount(void *ptr)
+{
+	GetMemoryChunk(ptr)->refcount--;
+}
+void mcxt_check(void *ptr, void *context, int refcount)
+{
+	assert(GetMemoryChunk(ptr)->context == context);
+	assert(GetMemoryChunk(ptr)->refcount == refcount);
+}
+#endif

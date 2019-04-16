@@ -26,15 +26,6 @@ od_route_id_init(od_route_id_t *id)
 	id->database_len = 0;
 }
 
-static inline void
-od_route_id_free(od_route_id_t *id)
-{
-	if (id->database)
-		free(id->database);
-	if (id->user)
-		free(id->user);
-}
-
 static inline int
 od_route_id_copy(od_route_id_t *dest, od_route_id_t *id)
 {

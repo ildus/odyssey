@@ -89,12 +89,12 @@ od_client_allocate(mcxt_context_t mcxt)
 
 	old = mcxt_switch_to(client_mcxt);
 	od_client_t *client = mcxt_alloc0(sizeof(*client));
-	client->mcxt = mcxt;
 
 	if (client == NULL)
 		return NULL;
 
 	od_client_init(client);
+	client->mcxt = client_mcxt;
 	mcxt_switch_to(old);
 
 	return client;

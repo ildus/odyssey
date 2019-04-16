@@ -292,8 +292,7 @@ od_config_reader_string(od_config_reader_t *reader, char **value,
 
 	if (!mcxt)
 	{
-		assert(current_mcxt == reader->mcxt ||
-			   current_mcxt == reader->config->mcxt ||
+		assert(current_mcxt == reader->config->mcxt ||
 			   current_mcxt == reader->rules->mcxt);
 
 		copy = mcxt_alloc(token.value.string.size + 1);
@@ -579,14 +578,14 @@ od_config_reader_route(od_config_reader_t *reader, char *db_name, int db_name_le
 	}
 	route->user_is_default = user_is_default;
 	route->user_name_len = user_name_len;
-	route->user_name = user_name;
+	route->user_name = mcxt_strdup_in(route->mcxt, user_name);
 
 	if (route->user_name == NULL)
 		return -1;
 
 	route->db_is_default = db_is_default;
 	route->db_name_len = db_name_len;
-	route->db_name = db_name;
+	route->db_name = mcxt_strdup_in(route->mcxt, db_name);
 	if (route->db_name == NULL)
 		return -1;
 
