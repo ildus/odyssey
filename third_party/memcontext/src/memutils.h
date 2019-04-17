@@ -2,6 +2,7 @@
 #define MEMUTILS_H
 
 #include "memconsts.h"
+#include "valgrind/memcheck.h"
 
 #define MAXIMUM_ALIGNOF 8
 #define TYPEALIGN(ALIGNVAL,LEN)  \

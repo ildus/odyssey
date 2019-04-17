@@ -54,6 +54,7 @@ mcxt_context_t mcxt_new(mcxt_context_t parent)
 	mcxt_chunk_t chunk = calloc(MEMORY_CHUNK_SIZE +
 		sizeof(struct mcxt_context_data), 1);
 	mcxt_context_t new = ChunkDataOffset(chunk);
+	memset(chunk, 0, sizeof(struct mcxt_context_data) + MEMORY_CHUNK_SIZE);
 
 	if (new == NULL)
 		return NULL;
@@ -188,8 +189,10 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 #ifdef MCXT_PROTECTION_CHECK
 	assert(context->ptid == pthread_self());
 	chunk->chunk_type = mct_alloc;
+	chunk->refcount = 0;
 #endif
 
+	chunk->prev = chunk->next = NULL;
 	chunk->context = context;
 	mcxt_append_chunk(context, chunk);
 
@@ -206,6 +209,9 @@ void *mcxt_realloc(void *ptr, size_t size)
 /* Free memory in specified memory context */
 void mcxt_free_mem(mcxt_context_t context, void *p)
 {
+	VALGRIND_CHECK_VALUE_IS_DEFINED(context);
+	VALGRIND_CHECK_VALUE_IS_DEFINED(p);
+
 	mcxt_chunk_t chunk = GetMemoryChunk(p);
 
 	assert(p != NULL);

@@ -462,7 +462,7 @@ od_config_reader_storage(od_config_reader_t *reader)
 	if (storage == NULL)
 		return -1;
 	/* name */
-	if (! od_config_reader_string(reader, &storage->name, NULL))
+	if (! od_config_reader_string(reader, &storage->name, storage->mcxt))
 		return -1;
 	/* { */
 	if (! od_config_reader_symbol(reader, '{'))
@@ -497,12 +497,12 @@ od_config_reader_storage(od_config_reader_t *reader)
 		switch (keyword->id) {
 		/* type */
 		case OD_LTYPE:
-			if (! od_config_reader_string(reader, &storage->type, NULL))
+			if (! od_config_reader_string(reader, &storage->type, storage->mcxt))
 				return -1;
 			continue;
 		/* host */
 		case OD_LHOST:
-			if (! od_config_reader_string(reader, &storage->host, NULL))
+			if (! od_config_reader_string(reader, &storage->host, storage->mcxt))
 				return -1;
 			continue;
 		/* port */
@@ -512,27 +512,27 @@ od_config_reader_storage(od_config_reader_t *reader)
 			continue;
 		/* tls */
 		case OD_LTLS:
-			if (! od_config_reader_string(reader, &storage->tls, NULL))
+			if (! od_config_reader_string(reader, &storage->tls, storage->mcxt))
 				return -1;
 			continue;
 		/* tls_ca_file */
 		case OD_LTLS_CA_FILE:
-			if (! od_config_reader_string(reader, &storage->tls_ca_file, NULL))
+			if (! od_config_reader_string(reader, &storage->tls_ca_file, storage->mcxt))
 				return -1;
 			continue;
 		/* tls_key_file */
 		case OD_LTLS_KEY_FILE:
-			if (! od_config_reader_string(reader, &storage->tls_key_file, NULL))
+			if (! od_config_reader_string(reader, &storage->tls_key_file, storage->mcxt))
 				return -1;
 			continue;
 		/* tls_cert_file */
 		case OD_LTLS_CERT_FILE:
-			if (! od_config_reader_string(reader, &storage->tls_cert_file, NULL))
+			if (! od_config_reader_string(reader, &storage->tls_cert_file, storage->mcxt))
 				return -1;
 			continue;
 		/* tls_protocols */
 		case OD_LTLS_PROTOCOLS:
-			if (! od_config_reader_string(reader, &storage->tls_protocols, NULL))
+			if (! od_config_reader_string(reader, &storage->tls_protocols, storage->mcxt))
 				return -1;
 			continue;
 		default:
