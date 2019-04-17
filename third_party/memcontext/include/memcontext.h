@@ -3,30 +3,45 @@
 
 #include <stdbool.h>
 
-typedef struct mcxt_memory_chunk	*mcxt_chunk_t;
-typedef struct mcxt_context_data	*mcxt_context_t;
+typedef struct mcxt_memory_chunk		*mcxt_chunk_t;
+typedef struct mcxt_context_data		*mcxt_context_t;
+typedef struct mcxt_context_callback	 mcxt_context_callback_t;
+
+typedef void (*mcxt_callback_function) (void *arg);
+struct mcxt_context_callback
+{
+	mcxt_callback_function func;		/* function to call */
+	void	   *arg;					/* argument to pass it */
+	mcxt_context_callback_t *next;		/* next in list of callbacks */
+};
 
 struct mcxt_context_data
 {
 	uint32_t		lock;
-	pthread_t		ptid;
 	mcxt_context_t	parent;
-	mcxt_context_t	firstchild;
-	mcxt_context_t	prevchild;
-	mcxt_context_t	nextchild;
-
-	mcxt_chunk_t	lastchunk;
+	mcxt_context_t	firstchild;			/* link to first child */
+	mcxt_context_t	prevchild;			/* prev parent's child */
+	mcxt_context_t	nextchild;			/* next parent's child */
+	mcxt_chunk_t	lastchunk;			/* list of allocated chunks */
+	mcxt_context_callback_t *reset_cbs;	/* list of reset/delete callbacks */
+#ifdef MCXT_PROTECTION_CHECK
+	pthread_t		ptid;				/* id of owner thread */
+#endif
 };
 
 extern __thread mcxt_context_t current_mcxt;
 
 mcxt_context_t mcxt_new(mcxt_context_t parent);
 mcxt_context_t mcxt_switch_to(mcxt_context_t to);
+
 void mcxt_reset(mcxt_context_t context, bool recursive);
 void mcxt_delete(mcxt_context_t context);
 void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero);
 void *mcxt_realloc(void *ptr, size_t size);
 void mcxt_free_mem(mcxt_context_t context, void *p);
+void mcxt_clean_reset_callbacks(mcxt_context_t context);
+void mcxt_add_reset_callback(mcxt_context_t context, mcxt_callback_function func, void *arg);
+
 int mcxt_chunks_count(mcxt_context_t context);
 char *mcxt_strdup_in(mcxt_context_t context, const char *string);
 

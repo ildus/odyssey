@@ -28,6 +28,7 @@ mcxt_append_chunk(mcxt_context_t context, mcxt_chunk_t chunk)
 	chunk->next = NULL;
 }
 
+/* Link child context to parent context */
 static void mcxt_link_context(mcxt_context_t parent, mcxt_context_t new)
 {
 	mm_sleeplock_lock(&parent->lock);
@@ -36,6 +37,8 @@ static void mcxt_link_context(mcxt_context_t parent, mcxt_context_t new)
 	else
 	{
 		mcxt_context_t	child;
+
+		/* find latest child */
 		for (child = parent->firstchild; child->nextchild != NULL;
 				child = child->nextchild);
 
@@ -56,8 +59,11 @@ mcxt_context_t mcxt_new(mcxt_context_t parent)
 		return NULL;
 
 	new->parent = parent;
+
+#ifdef MCXT_PROTECTION_CHECK
 	new->ptid = pthread_self();
 	chunk->chunk_type = mct_context;
+#endif
 
 	/* append to parent's children */
 	if (parent)
@@ -77,6 +83,7 @@ mcxt_context_t mcxt_switch_to(mcxt_context_t to)
 /* Free all memory in memory context */
 void mcxt_reset(mcxt_context_t context, bool recursive)
 {
+	mcxt_context_callback_t	*cb = context->reset_cbs;
 	mcxt_chunk_t		chunk = context->lastchunk;
 
 	if (recursive)
@@ -87,6 +94,13 @@ void mcxt_reset(mcxt_context_t context, bool recursive)
 		{
 			mcxt_reset(child, true);
 		}
+	}
+
+	/* call reset callbacks */
+	while (cb != NULL)
+	{
+		cb->func(cb->arg);
+		cb = cb->next;
 	}
 
 	while (chunk != NULL)
@@ -138,7 +152,9 @@ void mcxt_delete(mcxt_context_t context)
 	mcxt_context_t	child;
 
 	assert(current_mcxt != context);
+#ifdef MCXT_PROTECTION_CHECK
 	assert(GetMemoryChunk(context)->chunk_type == mct_context);
+#endif
 
 	mcxt_unlink_context(context);
 
@@ -148,17 +164,20 @@ void mcxt_delete(mcxt_context_t context)
 	}
 
 	mcxt_reset(context, false);
+	mcxt_clean_reset_callbacks(context);
 	free(GetMemoryChunk(context));
 }
 
-/* Allocate memory in specified memory context */
+/*
+ * Allocate memory in specified memory context,
+ * we don't have locks here since we assume that threads should not use same
+ * memory contexts for allocations.
+ */
 void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 {
 	mcxt_chunk_t		chunk;
 
 	assert(context);
-	assert(context->ptid == pthread_self());
-
 	chunk = malloc(MEMORY_CHUNK_SIZE + size);
 	if (chunk == NULL)
 		return NULL;
@@ -166,8 +185,12 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 	if (zero)
 		memset(chunk, 0, MEMORY_CHUNK_SIZE + size);
 
-	chunk->context = context;
+#ifdef MCXT_PROTECTION_CHECK
+	assert(context->ptid == pthread_self());
 	chunk->chunk_type = mct_alloc;
+#endif
+
+	chunk->context = context;
 	mcxt_append_chunk(context, chunk);
 
 	return ChunkDataOffset(chunk);
@@ -187,8 +210,8 @@ void mcxt_free_mem(mcxt_context_t context, void *p)
 
 	assert(p != NULL);
 	assert(p == (void *) MAXALIGN(p));
-	assert(chunk->chunk_type == mct_alloc);
 #ifdef MCXT_PROTECTION_CHECK
+	assert(chunk->chunk_type == mct_alloc);
 	assert(chunk->refcount == 0);
 #endif
 
@@ -211,6 +234,50 @@ char *mcxt_strdup_in(mcxt_context_t context, const char *string)
 	nstr = (char *) mcxt_alloc_mem(context, len, false);
 	memcpy(nstr, string, len);
 	return nstr;
+}
+
+/* Add callback for mcxt_reset call on the memory context */
+void mcxt_add_reset_callback(mcxt_context_t context,
+		mcxt_callback_function func, void *arg)
+{
+	mcxt_context_callback_t	*cb,
+							*new;
+
+	new = malloc(sizeof(mcxt_context_callback_t));
+	new->func = func;
+	new->arg = arg;
+	new->next = NULL;
+	mm_sleeplock_lock(&context->lock);
+
+	if (context->reset_cbs == NULL)
+		context->reset_cbs = new;
+	else
+	{
+		/* find end of chain */
+		for (cb = context->reset_cbs; cb->next != NULL;)
+			cb = cb->next;
+
+		cb->next = new;
+	}
+	mm_sleeplock_unlock(&context->lock);
+}
+
+/* Reset all `mcxt_reset` callbacks on the memory context */
+void mcxt_clean_reset_callbacks(mcxt_context_t context)
+{
+	mcxt_context_callback_t *cb;
+
+	mm_sleeplock_lock(&context->lock);
+	cb = context->reset_cbs;
+	context->reset_cbs = NULL;
+
+	while (cb != NULL)
+	{
+		mcxt_context_callback_t *next = cb->next;
+		free(cb);
+		cb = next;
+	}
+	mm_sleeplock_unlock(&context->lock);
 }
 
 #ifdef MCXT_PROTECTION_CHECK

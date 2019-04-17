@@ -20,17 +20,17 @@ struct mcxt_memory_chunk
 {
 	mcxt_chunk_t		prev;
 	mcxt_chunk_t		next;
-	mcxt_chunk_type		chunk_type;
 #ifdef MCXT_PROTECTION_CHECK
 	uint16_t			refcount;
+	mcxt_chunk_type		chunk_type;
 #define ALLOCCHUNK_RAWSIZE  (1 + SIZEOF_VOID_P * 2 + 2)
 #else
-#define ALLOCCHUNK_RAWSIZE  (1 + SIZEOF_VOID_P * 2)
+#define ALLOCCHUNK_RAWSIZE  (SIZEOF_VOID_P * 2)
 #endif
 
 	/* ensure proper alignment by adding padding if needed */
 #if (ALLOCCHUNK_RAWSIZE % MAXIMUM_ALIGNOF) != 0
-	char		padding[MAXIMUM_ALIGNOF - ALLOCCHUNK_RAWSIZE % MAXIMUM_ALIGNOF];
+	char	padding[MAXIMUM_ALIGNOF - ALLOCCHUNK_RAWSIZE % MAXIMUM_ALIGNOF];
 #endif
 	mcxt_context_t		context;
 };

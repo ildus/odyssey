@@ -66,7 +66,9 @@ static void test_allocation(void **state) {
 	char		   *block3;
 
 	chunk = GetMemoryChunk(mcxt_alloc_mem(top, 100, false));
+#ifdef MCXT_PROTECTION_CHECK
 	assert_true(chunk->chunk_type == mct_alloc);
+#endif
 	assert_true(chunk->context == top);
 	assert_true(malloc_usable_size(chunk) >= MEMORY_CHUNK_SIZE + 100);
 	assert_ptr_equal(top->lastchunk, chunk);
@@ -283,6 +285,41 @@ static void test_helpers(void **state) {
 	(void) state;	/* keep compiler quiet */
 }
 
+void callback1(void *arg)
+{
+	int	*counter = arg;
+	(*counter)++;
+}
+
+void callback2(void *arg)
+{
+	int	*counter = arg;
+	(*counter)++;
+}
+
+static void test_callbacks(void **state) {
+	int counter1 = 0,
+		counter2 = 0;
+
+	will_return_always(__wrap_free, 1);
+	free_called = 0;
+
+	mcxt_context_t	top = mcxt_new(NULL);
+	mcxt_add_reset_callback(top, callback1, (void *) &counter1);
+	mcxt_add_reset_callback(top, callback2, (void *) &counter2);
+	mcxt_reset(top, true);
+	assert_int_equal(counter1, 1);
+	assert_int_equal(counter2, 1);
+	mcxt_clean_reset_callbacks(top);
+	assert_int_equal(free_called, 2);
+
+	mcxt_reset(top, true);
+	assert_int_equal(counter1, 1);
+	assert_int_equal(counter2, 1);
+
+	(void) state;	/* keep compiler quiet */
+}
+
 int main(void) {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_consistency),
@@ -291,7 +328,8 @@ int main(void) {
         cmocka_unit_test(test_tree_deletion),
 		cmocka_unit_test(test_part_tree_deletion),
 		cmocka_unit_test(test_reset),
-		cmocka_unit_test(test_helpers)
+		cmocka_unit_test(test_helpers),
+		cmocka_unit_test(test_callbacks)
     };
     return cmocka_run_group_tests(tests, NULL, NULL);
 }
