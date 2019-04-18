@@ -290,15 +290,8 @@ od_config_reader_string(od_config_reader_t *reader, char **value,
 		return false;
 	}
 
-	if (!mcxt)
-	{
-		assert(current_mcxt == reader->config->mcxt ||
-			   current_mcxt == reader->rules->mcxt);
-
-		copy = mcxt_alloc(token.value.string.size + 1);
-	}
-	else
-		copy = mcxt_alloc_mem(mcxt, token.value.string.size + 1, false);
+	assert(mcxt != NULL);
+	copy = mcxt_alloc_mem(mcxt, token.value.string.size + 1, false);
 
 	if (copy == NULL) {
 		od_parser_push(&reader->parser, &token);
@@ -366,7 +359,6 @@ od_config_reader_listen(od_config_reader_t *reader)
 
 	od_config_listen_t *listen;
 
-	assert(current_mcxt == config->mcxt);
 	listen = od_config_listen_add(config);
 	if (listen == NULL) {
 		return -1;
@@ -405,7 +397,7 @@ od_config_reader_listen(od_config_reader_t *reader)
 		switch (keyword->id) {
 		/* host */
 		case OD_LHOST:
-			if (! od_config_reader_string(reader, &listen->host, NULL))
+			if (! od_config_reader_string(reader, &listen->host, config->mcxt))
 				return -1;
 			continue;
 		/* port */
@@ -420,27 +412,27 @@ od_config_reader_listen(od_config_reader_t *reader)
 			continue;
 		/* tls */
 		case OD_LTLS:
-			if (! od_config_reader_string(reader, &listen->tls, NULL))
+			if (! od_config_reader_string(reader, &listen->tls, config->mcxt))
 				return -1;
 			continue;
 		/* tls_ca_file */
 		case OD_LTLS_CA_FILE:
-			if (! od_config_reader_string(reader, &listen->tls_ca_file, NULL))
+			if (! od_config_reader_string(reader, &listen->tls_ca_file, config->mcxt))
 				return -1;
 			continue;
 		/* tls_key_file */
 		case OD_LTLS_KEY_FILE:
-			if (! od_config_reader_string(reader, &listen->tls_key_file, NULL))
+			if (! od_config_reader_string(reader, &listen->tls_key_file, config->mcxt))
 				return -1;
 			continue;
 		/* tls_cert_file */
 		case OD_LTLS_CERT_FILE:
-			if (! od_config_reader_string(reader, &listen->tls_cert_file, NULL))
+			if (! od_config_reader_string(reader, &listen->tls_cert_file, config->mcxt))
 				return -1;
 			continue;
 		/* tls_protocols */
 		case OD_LTLS_PROTOCOLS:
-			if (! od_config_reader_string(reader, &listen->tls_protocols, NULL))
+			if (! od_config_reader_string(reader, &listen->tls_protocols, config->mcxt))
 				return -1;
 			continue;
 		default:
@@ -554,7 +546,7 @@ od_config_reader_route(od_config_reader_t *reader, char *db_name, int db_name_le
 
 	/* user name or default */
 	if (od_config_reader_is(reader, OD_PARSER_STRING)) {
-		if (! od_config_reader_string(reader, &user_name, NULL))
+		if (! od_config_reader_string(reader, &user_name, reader->mcxt))
 			return -1;
 	} else {
 		if (! od_config_reader_keyword(reader, &od_config_keywords[OD_LDEFAULT]))
@@ -755,7 +747,7 @@ od_config_reader_database(od_config_reader_t *reader)
 
 	/* name or default */
 	if (od_config_reader_is(reader, OD_PARSER_STRING)) {
-		if (! od_config_reader_string(reader, &db_name, NULL))
+		if (! od_config_reader_string(reader, &db_name, reader->mcxt))
 			return -1;
 	} else {
 		if (! od_config_reader_keyword(reader, &od_config_keywords[OD_LDEFAULT]))
@@ -800,9 +792,7 @@ od_config_reader_database(od_config_reader_t *reader)
 		/* user */
 		case OD_LUSER:
 		{
-			mcxt_context_t	old = mcxt_switch_to(reader->rules->mcxt);
 			rc = od_config_reader_route(reader, db_name, db_name_len, db_is_default);
-			mcxt_switch_to(old);
 
 			if (rc == -1)
 				goto error;
@@ -849,7 +839,7 @@ od_config_reader_parse(od_config_reader_t *reader)
 		case OD_LINCLUDE:
 		{
 			char *config_file = NULL;
-			if (! od_config_reader_string(reader, &config_file, NULL))
+			if (! od_config_reader_string(reader, &config_file, reader->mcxt))
 				return -1;
 			rc = od_config_reader_import(reader->config, reader->rules,
 				reader->error, config_file, reader->mcxt);
@@ -1007,9 +997,7 @@ od_config_reader_parse(od_config_reader_t *reader)
 			continue;
 		/* listen */
 		case OD_LLISTEN:
-			old = mcxt_switch_to(config->mcxt);
 			rc = od_config_reader_listen(reader);
-			mcxt_switch_to(old);
 
 			if (rc == -1)
 				return -1;

@@ -20,7 +20,7 @@ od_instance_init(od_instance_t *instance)
 	od_logger_init(&instance->logger, &instance->pid);
 
 	instance->top_mcxt = mcxt_new(NULL);
-	instance->config = od_config_new(instance->top_mcxt);
+	instance->config = od_config_allocate(instance->top_mcxt);
 	instance->config_file = NULL;
 
 	sigset_t mask;
@@ -39,6 +39,7 @@ od_instance_free(od_instance_t *instance)
 		od_pid_unlink(&instance->pid, instance->config->pid_file);
 	od_config_free(instance->config);
 	od_logger_close(&instance->logger);
+	mcxt_delete(instance->top_mcxt);
 	machinarium_free();
 }
 
@@ -182,5 +183,6 @@ od_instance_main(od_instance_t *instance, int argc, char **argv)
 		return -1;
 
 	machine_wait(system.machine);
+
 	return 0;
 }

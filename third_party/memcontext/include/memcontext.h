@@ -24,7 +24,7 @@ struct mcxt_context_data
 	mcxt_context_t	nextchild;			/* next parent's child */
 	mcxt_chunk_t	lastchunk;			/* list of allocated chunks */
 	mcxt_context_callback_t *reset_cbs;	/* list of reset/delete callbacks */
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	pthread_t		ptid;				/* id of owner thread */
 #endif
 };
@@ -69,7 +69,7 @@ static inline char *mcxt_strdup(const char *string)
 	return mcxt_strdup_in(current_mcxt, string);
 }
 
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 void mcxt_incr_refcount(void *ptr);
 void mcxt_decr_refcount(void *ptr);
 void mcxt_check(void *ptr, void *context, int refcount);

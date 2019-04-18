@@ -250,7 +250,8 @@ od_system_listen(od_system_t *system)
 		/* resolve listen address and port */
 		char port[16];
 		od_snprintf(port, sizeof(port), "%d", listen->port);
-		struct addrinfo *ai = NULL;
+		struct addrinfo *ai = NULL,
+						*ai_next = NULL;
 		rc = machine_getaddrinfo(host, port, hints_ptr, &ai, UINT32_MAX);
 		if (rc != 0) {
 			od_error(&instance->logger, "system", NULL, NULL,
@@ -265,14 +266,19 @@ od_system_listen(od_system_t *system)
 			rc = od_system_server_start(system, listen, ai);
 			if (rc == 0)
 				binded++;
-			continue;
+			goto next;
 		}
-		while (ai) {
-			rc = od_system_server_start(system, listen, ai);
+
+		ai_next = ai;
+		while (ai_next) {
+			rc = od_system_server_start(system, listen, ai_next);
 			if (rc == 0)
 				binded++;
-			ai = ai->ai_next;
+			ai_next = ai_next->ai_next;
 		}
+next:
+		if (ai)
+			freeaddrinfo(ai);
 	}
 
 	return binded;
@@ -311,7 +317,7 @@ od_system_config_reload(od_system_t *system)
 	od_error_t error;
 	od_error_init(&error);
 
-	od_config_t *config = od_config_new(instance->top_mcxt);
+	od_config_t *config = od_config_allocate(instance->top_mcxt);
 
 	od_rules_t rules;
 	od_rules_init(instance->top_mcxt, &rules);

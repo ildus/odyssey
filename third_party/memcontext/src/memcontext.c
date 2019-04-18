@@ -8,6 +8,7 @@
 #include <pthread.h>
 
 #include "sleep_lock.h"
+#include "memconsts.h"
 #include "memcontext.h"
 #include "memutils.h"
 
@@ -61,7 +62,7 @@ mcxt_context_t mcxt_new(mcxt_context_t parent)
 
 	new->parent = parent;
 
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	new->ptid = pthread_self();
 	chunk->chunk_type = mct_context;
 #endif
@@ -153,7 +154,7 @@ void mcxt_delete(mcxt_context_t context)
 	mcxt_context_t	child;
 
 	assert(current_mcxt != context);
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	assert(GetMemoryChunk(context)->chunk_type == mct_context);
 #endif
 
@@ -186,7 +187,7 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 	if (zero)
 		memset(chunk, 0, MEMORY_CHUNK_SIZE + size);
 
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	assert(context->ptid == pthread_self());
 	chunk->chunk_type = mct_alloc;
 	chunk->refcount = 0;
@@ -196,6 +197,7 @@ void *mcxt_alloc_mem(mcxt_context_t context, size_t size, bool zero)
 	chunk->context = context;
 	mcxt_append_chunk(context, chunk);
 
+	VALGRIND_MAKE_MEM_DEFINED(chunk, MEMORY_CHUNK_SIZE);
 	return ChunkDataOffset(chunk);
 }
 
@@ -216,7 +218,7 @@ void mcxt_free_mem(mcxt_context_t context, void *p)
 
 	assert(p != NULL);
 	assert(p == (void *) MAXALIGN(p));
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	assert(chunk->chunk_type == mct_alloc);
 	assert(chunk->refcount == 0);
 #endif
@@ -286,7 +288,7 @@ void mcxt_clean_reset_callbacks(mcxt_context_t context)
 	mm_sleeplock_unlock(&context->lock);
 }
 
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 void mcxt_incr_refcount(void *ptr)
 {
 	GetMemoryChunk(ptr)->refcount++;

@@ -1,8 +1,12 @@
 #ifndef MEMUTILS_H
 #define MEMUTILS_H
 
-#include "memconsts.h"
-#include "valgrind/memcheck.h"
+#ifdef MCXT_CHECK
+#include "memcheck.h"
+#else
+#define VALGRIND_MAKE_MEM_DEFINED(ptr,size)
+#define VALGRIND_CHECK_VALUE_IS_DEFINED(ptr)
+#endif
 
 #define MAXIMUM_ALIGNOF 8
 #define TYPEALIGN(ALIGNVAL,LEN)  \
@@ -21,7 +25,7 @@ struct mcxt_memory_chunk
 {
 	mcxt_chunk_t		prev;
 	mcxt_chunk_t		next;
-#ifdef MCXT_PROTECTION_CHECK
+#ifdef MCXT_CHECK
 	uint16_t			refcount;
 	mcxt_chunk_type		chunk_type;
 #define ALLOCCHUNK_RAWSIZE  (1 + SIZEOF_VOID_P * 2 + 2)

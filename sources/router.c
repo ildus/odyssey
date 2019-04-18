@@ -21,6 +21,7 @@ od_router_free(od_router_t *router)
 {
 	od_route_pool_free(&router->route_pool);
 	od_rules_free(&router->rules);
+	mcxt_delete(router->mcxt);
 	pthread_mutex_destroy(&router->lock);
 }
 

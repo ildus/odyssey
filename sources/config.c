@@ -8,7 +8,7 @@
 #include <odyssey.h>
 
 od_config_t *
-od_config_new(mcxt_context_t mcxt)
+od_config_allocate(mcxt_context_t mcxt)
 {
 	mcxt_context_t	config_mcxt = mcxt_new(mcxt);
 	od_config_t	   *config;
@@ -35,6 +35,7 @@ od_config_new(mcxt_context_t mcxt)
 void
 od_config_free(od_config_t *config)
 {
+	fprintf(stderr, "ok");
 	mcxt_delete(config->mcxt);
 }
 
@@ -43,7 +44,7 @@ od_config_listen_add(od_config_t *config)
 {
 	od_config_listen_t *listen;
 
-	listen = mcxt_alloc0(sizeof(*listen));
+	listen = mcxt_alloc_mem(config->mcxt, sizeof(*listen), true);
 
 	if (listen == NULL)
 		return NULL;
