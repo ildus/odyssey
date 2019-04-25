@@ -50,7 +50,8 @@ static inline od_list_t*
 od_list_pop(od_list_t *list)
 {
 	register od_list_t *pop = list->next;
-	od_list_unlink(pop);
+	if (pop != NULL)
+		od_list_unlink(pop);
 	return pop;
 }
 

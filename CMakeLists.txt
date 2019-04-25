@@ -64,6 +64,22 @@ build_kiwi()
 set(od_libraries ${od_libraries} ${KIWI_LIBRARIES})
 include_directories(${KIWI_INCLUDE_DIRS})
 
+# cetcd
+include(BuildCetcd)
+build_cetcd()
+set(od_libraries ${od_libraries} ${CETCD_LIBRARIES})
+
+# for json
+find_library(JANSSON_LIB jansson)
+set(od_libraries ${od_libraries} ${JANSSON_LIB})
+
+# stolon support
+set(STOLON_STORAGE_DIR third_party/stolon)
+add_subdirectory(${STOLON_STORAGE_DIR})
+add_dependencies(build_libs stolon_storage)
+include_directories(${STOLON_STORAGE_DIR}/sources)
+set(od_libraries ${od_libraries} stolon_storage)
+
 message (STATUS "")
 message (STATUS "Odyssey (version: ${OD_VERSION_GIT} ${OD_VERSION_BUILD})")
 message (STATUS "")

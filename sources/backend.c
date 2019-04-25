@@ -18,6 +18,7 @@
 #include <machinarium.h>
 #include <kiwi.h>
 #include <odyssey.h>
+#include "stolon_storage.h"
 
 void
 od_backend_close(od_server_t *server)
@@ -47,6 +48,9 @@ od_backend_terminate(od_server_t *server)
 void
 od_backend_close_connection(od_server_t *server)
 {
+	if (!server->io.io)
+		return;
+
 	if (machine_connected(server->io.io))
 		od_backend_terminate(server);
 
@@ -248,6 +252,32 @@ od_backend_connect_to(od_server_t *server, char *context,
 	io = machine_io_create();
 	if (io == NULL)
 		return -1;
+
+	// use stolon if needed
+	if (storage->storage_type == OD_RULE_STORAGE_STOLON)
+	{
+		od_rule_custom_storage_t	custom_storage = {"\0", 0};
+		assert(storage->stolon_state != NULL);
+
+		od_stolon_set_storage(server->client, storage->stolon_state,
+			&custom_storage);
+		if (custom_storage.host[0] != '\0')
+		{
+			if (storage->host)
+				free(storage->host);
+
+			storage->host = strdup(custom_storage.host);
+			storage->port = custom_storage.port;
+		}
+		else
+		{
+			od_error(&instance->logger, context, NULL, server,
+					 "failed to set server io");
+			machine_close(io);
+			machine_io_free(io);
+			return -1;
+		}
+	}
 
 	/* set network options */
 	machine_set_nodelay(io, instance->config.nodelay);

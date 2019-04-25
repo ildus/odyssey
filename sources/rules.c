@@ -17,6 +17,7 @@
 #include <machinarium.h>
 #include <kiwi.h>
 #include <odyssey.h>
+#include "stolon_storage.h"
 
 void
 od_rules_init(od_rules_t *rules)
@@ -70,6 +71,15 @@ od_rules_storage_free(od_rule_storage_t *storage)
 		free(storage->tls_cert_file);
 	if (storage->tls_protocols)
 		free(storage->tls_protocols);
+
+	if (storage->stolon_config.store_prefix)
+		free(storage->stolon_config.store_prefix);
+	if (storage->stolon_config.cluster_name)
+		free(storage->stolon_config.cluster_name);
+	if (storage->stolon_config.endpoints)
+		free(storage->stolon_config.endpoints);
+	if (storage->stolon_state)
+		od_stolon_free_state(storage->stolon_state);
 	od_list_unlink(&storage->link);
 	free(storage);
 }
@@ -144,6 +154,26 @@ od_rules_storage_copy(od_rule_storage_t *storage)
 		if (copy->tls_protocols == NULL)
 			goto error;
 	}
+	if (storage->stolon_config.store_prefix) {
+		copy->stolon_config.store_prefix = strdup(storage->stolon_config.store_prefix);
+		if (copy->stolon_config.store_prefix == NULL)
+			goto error;
+	}
+	if (storage->stolon_config.cluster_name) {
+		copy->stolon_config.cluster_name = strdup(storage->stolon_config.cluster_name);
+		if (copy->stolon_config.cluster_name == NULL)
+			goto error;
+	}
+	if (storage->stolon_config.endpoints) {
+		copy->stolon_config.endpoints = strdup(storage->stolon_config.endpoints);
+		if (copy->stolon_config.endpoints == NULL)
+			goto error;
+	}
+	copy->stolon_config.check_interval_default =
+		storage->stolon_config.check_interval_default;
+	copy->stolon_config.check_interval_fast =
+		storage->stolon_config.check_interval_fast;
+
 	return copy;
 error:
 	od_rules_storage_free(copy);
@@ -624,8 +654,7 @@ od_rules_validate(od_rules_t *rules, od_config_t *config, od_logger_t *logger)
 		}
 		if (strcmp(storage->type, "remote") == 0) {
 			storage->storage_type = OD_RULE_STORAGE_REMOTE;
-		} else
-		if (strcmp(storage->type, "local") == 0) {
+		} else if (strcmp(storage->type, "local") == 0) {
 			storage->storage_type = OD_RULE_STORAGE_LOCAL;
 		} else
 		if (strcmp(storage->type, "replication") == 0) {
@@ -633,6 +662,9 @@ od_rules_validate(od_rules_t *rules, od_config_t *config, od_logger_t *logger)
 		} else
 		if (strcmp(storage->type, "replication_logical") == 0) {
 			storage->storage_type = OD_RULE_STORAGE_REPLICATION_LOGICAL;
+		}
+		else if (strcmp(storage->type, "stolon") == 0) {
+			storage->storage_type = OD_RULE_STORAGE_STOLON;
 		} else {
 			od_error(logger, "rules", NULL, NULL, "unknown storage type");
 			return -1;
@@ -847,11 +879,22 @@ od_rules_print(od_rules_t *rules, od_logger_t *logger)
 		       "  storage          %s", rule->storage_name);
 		od_log(logger, "rules", NULL, NULL,
 		       "  type             %s", rule->storage->type);
-		od_log(logger, "rules", NULL, NULL,
+		if (rule->storage->host)
+			od_log(logger, "rules", NULL, NULL,
 		       "  host             %s",
 		       rule->storage->host ? rule->storage->host : "<unix socket>");
-		od_log(logger, "rules", NULL, NULL,
+		if (rule->storage->port)
+			od_log(logger, "rules", NULL, NULL,
 		       "  port             %d", rule->storage->port);
+		if (rule->storage->stolon_config.store_prefix)
+			od_log(logger, "rules", NULL, NULL,
+			   "  store_prefix     %s", rule->storage->stolon_config.store_prefix);
+		if (rule->storage->stolon_config.cluster_name)
+			od_log(logger, "rules", NULL, NULL,
+		       "  cluster_name     %s", rule->storage->stolon_config.cluster_name);
+		if (rule->storage->stolon_config.endpoints)
+			od_log(logger, "rules", NULL, NULL,
+		       "  endpoints        %s", rule->storage->stolon_config.endpoints);
 		if (rule->storage->tls)
 			od_log(logger, "rules", NULL, NULL,
 			       "  tls              %s", rule->storage->tls);

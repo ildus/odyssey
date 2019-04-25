@@ -11,6 +11,9 @@ typedef struct od_rule_storage od_rule_storage_t;
 typedef struct od_rule_auth    od_rule_auth_t;
 typedef struct od_rule         od_rule_t;
 typedef struct od_rules        od_rules_t;
+typedef struct od_stolon_config od_stolon_config_t;
+typedef struct od_stolon_database od_stolon_database_t;
+typedef struct od_rule_custom_storage od_rule_custom_storage_t;
 
 typedef enum
 {
@@ -43,13 +46,31 @@ typedef enum
 	OD_RULE_STORAGE_LOCAL,
 	OD_RULE_STORAGE_REPLICATION,
 	OD_RULE_STORAGE_REPLICATION_LOGICAL,
+	OD_RULE_STORAGE_STOLON
 } od_rule_storage_type_t;
+
+
+struct od_stolon_config
+{
+	int		check_interval_default;
+	int		check_interval_fast;
+	char   *store_prefix;
+	char   *cluster_name;
+	char   *endpoints;
+};
+
+struct od_stolon_database
+{
+	char			*host;
+	int              port;
+};
 
 struct od_rule_storage
 {
+	od_rule_storage_type_t  storage_type;
+
 	char                   *name;
 	char                   *type;
-	od_rule_storage_type_t  storage_type;
 	char                   *host;
 	int                     port;
 	od_rule_tls_t           tls_mode;
@@ -59,6 +80,15 @@ struct od_rule_storage
 	char                   *tls_cert_file;
 	char                   *tls_protocols;
 	od_list_t               link;
+
+	od_stolon_config_t		stolon_config;
+	void				   *stolon_state;
+};
+
+struct od_rule_custom_storage
+{
+	char					host[128];
+	int                     port;
 };
 
 struct od_rule_auth

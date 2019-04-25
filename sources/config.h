@@ -29,7 +29,7 @@ struct od_config_listen
 	char             *tls_ca_file;
 	char             *tls_key_file;
 	char             *tls_cert_file;
-	char             *tls_protocols;
+	char			 *tls_protocols;
 	od_list_t         link;
 };
 

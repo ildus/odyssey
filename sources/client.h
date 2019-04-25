@@ -9,6 +9,7 @@
 
 typedef struct od_client_ctl od_client_ctl_t;
 typedef struct od_client     od_client_t;
+typedef struct od_client_onfree_cb	od_client_onfree_cb_t;
 
 typedef enum
 {
@@ -52,6 +53,14 @@ struct od_client
 	od_global_t        *global;
 	od_list_t           link_pool;
 	od_list_t           link;
+	od_list_t           onfree_callbacks;
+};
+
+struct od_client_onfree_cb
+{
+	void (*cb)(od_client_t *, void *arg);
+	void	   *arg;
+	od_list_t	link;
 };
 
 static inline void
@@ -77,6 +86,7 @@ od_client_init(od_client_t *client)
 	od_relay_init(&client->relay, &client->io);
 	od_list_init(&client->link_pool);
 	od_list_init(&client->link);
+	od_list_init(&client->onfree_callbacks);
 }
 
 static inline od_client_t*
@@ -92,6 +102,16 @@ od_client_allocate(void)
 static inline void
 od_client_free(od_client_t *client)
 {
+	od_list_t	*item,
+				*safe;
+	od_list_foreach_safe(&client->onfree_callbacks, item, safe)
+	{
+		od_client_onfree_cb_t *client_cb;
+		client_cb = od_container_of(item, od_client_onfree_cb_t, link);
+		client_cb->cb(client, client_cb->arg);
+		free(client_cb);
+	}
+
 	od_relay_free(&client->relay);
 	od_io_free(&client->io);
 	if (client->cond)
@@ -137,5 +157,9 @@ od_client_kill(od_client_t *client)
 	od_client_ctl_set(client, OD_CLIENT_OP_KILL);
 	od_client_notify(client);
 }
+
+extern od_id_t *od_client_id(od_client_t *client);
+extern void od_client_onfree_cb_add(od_client_t *client,
+	void (*cb)(od_client_t *, void *), void *arg);
 
 #endif /* ODYSSEY_CLIENT_H */
