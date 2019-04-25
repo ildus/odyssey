@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
-
-project(odyssey C)
+cmake_minimum_required(VERSION 3.5)
+project(odyssey LANGUAGES C)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -21,7 +20,7 @@ endif()
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     set(CMAKE_C_FLAGS "-std=gnu99 -pedantic -Wall -Wextra -Wstrict-aliasing -g -O2")
 elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "-std=gnu99 -pedantic -Wall -Wextra -Wstrict-aliasing -g -O0")
+    set(CMAKE_C_FLAGS "-std=gnu99 -pedantic -Wall -Wextra -Wstrict-aliasing -g3 -O0")
 endif()
 
 string(TOLOWER ${CMAKE_BUILD_TYPE} OD_VERSION_BUILD)
@@ -69,15 +68,13 @@ include(BuildCetcd)
 build_cetcd()
 set(od_libraries ${od_libraries} ${CETCD_LIBRARIES})
 
-# for json
-find_library(JANSSON_LIB jansson)
-set(od_libraries ${od_libraries} ${JANSSON_LIB})
+#memcontext
+add_subdirectory(third_party/memcontext)
+set(od_libraries ${od_libraries} memcontext)
+include_directories(third_party/memcontext/include)
 
-# stolon support
-set(STOLON_STORAGE_DIR third_party/stolon)
-add_subdirectory(${STOLON_STORAGE_DIR})
-add_dependencies(build_libs stolon_storage)
-include_directories(${STOLON_STORAGE_DIR}/sources)
+#stolon support
+add_subdirectory(third_party/stolon)
 set(od_libraries ${od_libraries} stolon_storage)
 
 message (STATUS "")

@@ -4,6 +4,7 @@
 #include <uuid/uuid.h>
 #include <unistd.h>
 #include "cetcd.h"
+#include <memcontext.h>
 #include "sources/id.h"
 #include "sources/pid.h"
 #include "sources/list.h"
